@@ -2,7 +2,7 @@
 This repository serves as my global knowledge and /org/anization home. A minor detail: this serves as my public version, mostly for demonstrative purposes.
 ## Files and folders
 ### `c-latex/`
-This folder houses all my personal $LaTeX$ files.
+This folder houses all my personal LaTeX files.
 ### `c-ledger/`
 This folder houses my personal accounting files using the [Ledger](https://www.ledger-cli.org/) accounting system. 
 #### TODO Finish `ImportTransactions.py` to automate the transaction import process from bank .csv.
