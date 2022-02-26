@@ -1,5 +1,5 @@
 # About `c-elliott96/ORG-public`
-This repository serves as my global knowledge and /org/anization home. A minor detail: this serves as my public version, mostly for demonstrative purposes.
+This repository serves as my global knowledge and *org*anization home. A minor detail: this serves as my public version, mostly for demonstrative purposes.
 ## Files and folders
 ### `c-latex/`
 This folder houses all my personal LaTeX files.
