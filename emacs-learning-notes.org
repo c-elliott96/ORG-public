@@ -1,0 +1,165 @@
+# Not sure how to use org mode yet, and need to learn emacs usage first
+
+# Following "mini manual" mentioned here: https://www.emacswiki.org/emacs/LearningEmacs
+
+A REALLY great Emacs literate config/walkthrough can be found [[https://alhassy.github.io/emacs.d/index.html][here]], by /Alhassy/
+
+* Functions in Emacs
+  
+  Normal functions: under-the-hood functions, like regular programming functions
+  Commands: interactive functions for emacs users
+
+* Need-to-know Keyboard commands
+  
+  * C-g executes `keyboard-quit`, so use that for halting operations
+
+  * C-x is for default and global bindings
+
+  * C-c is userspace prefixes
+
+  * C-u (n times) is similar to C-<number>
+
+* Built-in help
+
+  * C-h m runs `describe-mode` for major and minor mode bindings and documentation
+
+  * C-h w runs `where-is` to get which keystrokes invoke a given command
+
+  * C-h c runs `describe-key-briefly` to find out what command is bound to a key
+
+  * C-h k runs `describe-key`
+
+  * C-h e runs `view-echo-area-messages` to see logged echo messages
+
+  * C-h v runs `describe-variable` and asks for a variable
+
+  * C-h C-h runs `help-for-help`. To see list of available help commands
+
+* Man
+
+  You can view man pages with two commands
+
+  * M-x man: get a UNIX manual page and put it in a buffer
+
+  * M-x woman: browse UN*X man page for TOPIC
+
+* Opening Files
+
+  * C-x C-f to run `find-file`
+
+  * Also useful is M-x ffap which runs `find-file-at-point`
+
+* Ido Mode
+
+  # I'm not sure I love Ido. The alternative is helm. This manual uses Ido,
+  # so we will, too.
+  
+  Short for Interactively Do Things
+
+  * Activate it with M-x ido-mode
+
+* Buffer
+
+  * C-x C-s `save-buffer`
+
+  * C-x C-w `write-file` (save buffer to different file)
+
+  * C-x b `switch-to-buffer`
+
+  * C-x k `kill-buffer`
+
+* Major Mode
+
+  Only one major mode in any given buffer
+
+* Minor Mode
+
+  Can have multiple. Independent of Major Mode
+
+* Buffer management
+
+  We want to use ibuffer instead of `list-buffers`
+
+  `(global-set-key (kbd "C-x C-b") 'ibuffer)` added to ~/.emacs.d/init.el
+  
+  * More details [[http://tuhdo.github.io/emacs-tutor.html#orgheadline29][here]].
+
+* Bookmark: Save locations across Emacs sessions
+
+  C-x r m runs `bookmark-set`
+  * Set bookmark at point. After executing the command, a prompt asks for a name.
+
+  C-x r b runs `bookmark-jump`
+  * Jump to a saved bookmark, specified by user. TAB for getting a bookmark list
+
+  C-x r l runs `bookmark-bmenu-list`
+  * Open the list of all bookmarks
+
+* Basic Motion Commands
+
+  "Arrow" movements
+  * C-f move forward
+  * C-b move backward
+  * C-p move up one line
+  * C-n move down one line
+
+  "longer" movements
+  * C-a move to beginning of a line
+  * C-e move to the end of a line
+  * M-f move forward one word
+  * M-b move backward one word
+
+  Emacs-only key bindings
+  * C-v scroll forward one screen (shares the last line w/ previous)
+  * M-v scroll backward one screen (shares the first line w/ previous)
+  * M-a move to the beginning of a sentence
+  * M-e move to the end of a sentence
+  * C-l recenter a screen
+  * M-r reposition point to the top, middle and bottom of the current screen
+  * M-< move to the top of a buffer
+  * M-> move to the end of a buffer
+  * M-g c move to the nth character
+  * M-g g move to the nth line
+
+* [[https://github.com/jwiegley/use-package][use-package]]
+
+  Just some good use-package information
+
+** =:init expr1 .. exprN=
+
+   Expressions following =:init= are always executed /before/ loading a package
+
+** =:diminish [str]=
+
+   Uses /optional/ string =str= in the modeline to indicate this module is active.
+   Omit =str= to prevent minor mode from appearing in the mode line entirely.
+
+** =:config expr1 .. exprN=
+
+   /Only/ executes expressions /after/ loading a package.
+
+** =:bind ((k1 . f1) .. (kN . fN)=
+
+   Lets us bind keys to functions
+
+** =:hook ((m1 .. mN) . f)=
+
+   Enables functionaliy =f= whenever we're in one of the modes =m=, such as =org-mode=.
+   The =. f=, along with the outermost parenthesis, is optional and defaults to the name
+   of the package -- Warning: Erroneous behavior happens if the package's name is not a
+   function provided by the package; a common case is when package's name does /not/ end
+   in =-mode=, leading to the invocation =((m1 ... mN) . <whatever-the-name-is>-mode)=
+   instead.
+
+   Outside of =use-package=, one normally uses an =add-hook= clause.
+
+** =:custom (k1 v1 d1) ... (kn vn dn)=
+
+   Sets a package's custom variables =ki= to have values =vi=, along with /optional/
+   use documentation =di= to explain to yourself, in the future, why you've made this
+   decision. Essentially =setq= within =:config=.
+
+** =:disabled=
+   
+   A standalone keyword to turn off loading a module that, say, you're not using
+   anymore.

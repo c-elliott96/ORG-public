@@ -1,0 +1,781 @@
+#+TITLE: Emacs.org
+#+AUTHOR: Christian Elliott
+#+PROPERTY: header-args:emacs-lisp :tangle init.el
+
+# References:
+# * Nice literate config; most of my stuff comes from here: https://github.com/alhassy/emacs.d
+# * Awesome Emacs list: https://github.com/emacs-tw/awesome-emacs#editing
+# * Table of MANY good Emacs configs: https://github.com/caisah/emacs.dz
+# * https://github.com/angrybacon/dotemacs/blob/master/dotemacs.org
+# * https://jamiecollinson.com/blog/my-emacs-config/
+# * https://github.com/daviwil/dotfiles/blob/master/Emacs.org
+
+* Notes
+** =use-package=
+   Use =:tangle no= in the =#+begin_src= header to disable tangling for that block.
+
+   For =use-package= directives:
+  #+BEGIN_QUOTE
+   The :disabled keyword can turn off a module you're having difficulties with,
+   or stop loading something you're not using at the present time
+  #+END_QUOTE
+* TODO Get Consult set up for minibuffer completion
+  Also install consult-lsp.
+
+#+BEGIN_QUOTE 
+  When using lsp, it is likely that you will encounter programming errors. To
+  navigate through these errors via the minibuffer, you can use a package for
+  that. If like me, you use consult with your minibuffer completion, then
+  consult-lsp is made for you.
+#+END_QUOTE
+
+#+BEGIN_SRC emacs-lisp :tangle no
+  (use-package consult-lsp
+    ;; :disabled
+    :commands (consult-lsp-diagnostics consult-lsp-symbols))
+#+END_SRC
+
+* TODO Use dap-mode for Debug Adapter Protocol for debugging
+  Why?! Why do I add these TODOs?
+  
+* Personal Information
+  
+#+BEGIN_SRC emacs-lisp
+  (setq user-full-name "Christian Elliott"
+        user-mail-address "cdelliott96@gmail.com")
+#+END_SRC
+
+* Packages & Initial Setup
+
+** Setup Package Archives and use-package
+
+   #+begin_src emacs-lisp
+     (setq package-archives
+	   '(("gnu" . "https://elpa.gnu.org/packages/") ; Should I change this to elpa?
+	     ("melpa" . "https://melpa.org/packages/")))
+
+     ;; I really should know more about the next ~ 5 lines.
+     (package-initialize)
+     (unless (package-installed-p 'use-package)
+       (package-refresh-contents)
+       (package-install 'use-package))
+     (require 'package)
+     (require 'use-package)
+
+     (use-package use-package-ensure-system-package 
+       :ensure t)
+   #+end_src
+
+** Async
+
+   #+BEGIN_SRC emacs-lisp
+     (use-package async
+       :init
+       (autoload 'dired-async-mode "dired-async.el" nil t)
+       (dired-async-mode 1)
+       (async-bytecomp-package-mode 1)
+       (autoload 'dired-async-mode "dired-async.el" nil t)
+       (async-bytecomp-package-mode 1)
+       (dired-async-mode 1))
+   #+END_SRC
+
+* Operating System
+** Detect the OS
+
+#+BEGIN_SRC emacs-lisp
+  (defun is-mac-p
+      ()
+    (eq system-type 'darwin))
+
+  (defun is-linux-p
+      ()
+    (eq system-type 'gnu/linux))
+
+  (defun is-windows-p
+      ()
+    (or
+     (eq system-type 'ms-dos)
+     (eq system-type 'windows-nt)
+     (eq system-type 'cygwin)))
+
+  (defun is-bsd-p
+      ()
+    (eq system-type 'gnu/kfreebsd))
+#+END_SRC
+   
+** Start Emacs server (primarily useful on Darwin)
+
+   #+BEGIN_SRC emacs-lisp
+     (server-start)
+   #+END_SRC
+   
+** Disable visible bell if on Linux
+
+   #+BEGIN_SRC emacs-lisp
+     (setq ring-bell-function 'ignore)
+   #+END_SRC
+
+* LSP
+
+  The main benefit of using Language Server Protocol (LSP) to configure the management of your programming languages is that LSP servers are also used by other text editors, increasing contributions to these packages. What could be better than benefiting from the larger community, while keeping a quality text editor ;-)
+
+We need a Language Server Protocol (LSP) client to use different LSP servers according to the programming languages that we would like to use. That’s where lsp-mode comes in!
+
+  #+BEGIN_SRC emacs-lisp
+    (use-package lsp-mode
+      :commands (lsp lsp-deferred)
+      :hook ((prog-mode . lsp-deferred)
+	     (lsp-mode . lsp-enable-which-key-integration))
+      :custom
+      (lsp-enable-folding nil)
+      (lsp-enable-links nil)
+      (lsp-enable-snippet nil)
+      (lsp-keymap-prefix "C-c ;")
+      (read-process-output-max (* 1024 1024)))
+  #+END_SRC
+
+  In addition to lsp-mode, it is possible to use lsp-ui to get additional information (e.g., documentation) when hovering a variable or a function.
+
+  #+BEGIN_SRC emacs-lisp
+    (use-package lsp-ui
+      :hook (lsp-mode . lsp-ui-mode))
+  #+END_SRC
+
+* Full screen
+  
+** Make toggle full screen available on OSX
+   #+BEGIN_SRC emacs-lisp
+     (when (is-mac-p)
+       (defun toggle-fullscreen ()
+         "Toggle full screen"
+         (interactive)
+         (set-frame-parameter
+          nil 'fullscreen
+          (when (not (frame-parameter nil 'fullscreen)) 'fullboth)))
+       )
+   #+END_SRC
+
+   Note: to maximize the window instead of making it fullscreen, use =toggle-frame-maximized=. Works out of the box.
+   
+* TeX
+
+  #+BEGIN_SRC emacs-lisp
+    (use-package tex
+      :ensure auctex)
+  #+END_SRC
+
+* =ls= vs =gls= (for OSX Dired issues)
+
+  Checks if we're on OSX and sets =insert-directory-program= appropriately.
+
+  Not sure if the second value (=dired-use-ls-dired t=) is necessary, but it works.
+
+#+BEGIN_SRC emacs-lisp
+  (when (is-mac-p)
+    (setq insert-directory-program "gls" dired-use-ls-dired t)
+
+    ;; For LaTex settings or for fixing errors like =org-create-formula-image: Can’t find ‘latex’ (you need to install the programs: latex and dvipng.)=
+    (setenv "PATH" (concat "/Library/TeX/texbin" (getenv "PATH")))
+    (setq exec-path (append '("/Library/TeX/texbin") exec-path))
+    )
+#+END_SRC
+
+* Anti-Aliasing (OSX)
+
+#+BEGIN_SRC emacs-lisp
+  (when (is-mac-p)
+    (setq mac-allow-anti-aliasing t))
+#+END_SRC
+
+* Better Defaults
+
+#+begin_src emacs-lisp
+  (setq-default
+   cursor-in-non-selected-windows t       ; Hide the cursor in non-selected windows
+   fill-column 80                         ; Set width for automatic line breaks
+   load-prefer-newer t                    ; Prefer the newest version of a file
+   gc-cons-threshold (* 8 1024 1024)      ; Increase GC size
+   help-window-select t                   ; Focus new help window when opened
+   inhibit-startup-screen t               ; Disable start-up screen
+   read-process-output-max (* 1024 1024)  ; Increase read size per process
+   scroll-conservatively most-positive-fixnum ; Always scroll by one line
+   scroll-margin 2                        ; Add a margin when scrolling vertically     !!
+   select-enable-clipboard t)             ; Merge system's and Emacs' clipboard
+  (delete-selection-mode 1)               ; Replace region when inserting text
+  (fset 'yes-or-no-p 'y-or-n-p)           ; Replace yes/no prompts with y/n
+  (put 'downcase-region 'disabled nil)    ; Enable downcase-region
+  (put 'upcase-region 'disabled nil)      ; Enable upcase-region
+  (set-default-coding-systems 'utf-8)     ; Default to utf-8 encoding
+  (global-prettify-symbols-mode +1)       ; Prettify symbols
+  (show-paren-mode 1)
+  (column-number-mode 1)
+  (global-hl-line-mode) ; TODO Make org-mode source code HL a different color
+#+end_src
+
+* Buffers
+  
+  #+BEGIN_SRC emacs-lisp
+    (use-package ibuffer
+      :ensure nil
+      :preface
+      (defvar protected-buffers '("*scratch*" "*Messages*")
+	"Buffer that cannot be killed.")
+      :bind ("C-x C-b" . ibuffer))
+  #+END_SRC
+  
+* Trying out: move-text
+
+  [[https://github.com/emacsfodder/move-text][move-text]] package allows to move the current line or if marked, the current region's lines.
+
+  #+BEGIN_SRC emacs-lisp
+    (use-package move-text
+      :bind (("M-p" . move-text-up)
+	     ("M-n" . move-text-down))
+      :config (move-text-default-bindings))
+  #+END_SRC
+
+* Org Mode
+Inspiration from [[https://zzamboni.org/post/beautifying-org-mode-in-emacs/][this blog post]]
+   
+Hide the '//italic//', '**bold**' etc markers
+#+BEGIN_SRC emacs-lisp
+  (setq org-hide-emphasis-markers t)
+#+END_SRC
+   
+Then, we set up a font-lock substitution for list markers (I always use “-” for
+lists, but you can change this if you want) by replacing them with a
+centered-dot character:
+#+BEGIN_SRC emacs-lisp :tangle no
+  (font-lock-add-keywords 'org-mode '(("^ *\\([-]\\) "
+                                       (0 (prog1 () (compose-region (match-beginning
+                                                                     1) (match-end 1) "•"))))))
+#+END_SRC
+
+The org-bullets package replaces all headline markers with different Unicode
+bullets:
+#+BEGIN_SRC emacs-lisp
+  (use-package org-bullets
+    :ensure t
+    :config
+    (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
+#+END_SRC
+
+Allow indentation in org source blocks and fix tabbing in blocks. Also, fix
+fonts for 'DONE' headline.
+#+begin_src emacs-lisp
+  (setq org-startup-indented t
+        org-src-tab-acts-natively t
+        org-fontify-done-headline t
+        org-pretty-entities t)
+#+end_src
+
+Prettify source blocks
+#+begin_src emacs-lisp
+  (setq-default prettify-symbols-alist '(("#+BEGIN_SRC" . "λ")
+                                         ("#+END_SRC" . "λ")
+                                         ("#+begin_src" . "λ")
+                                         ("#+end_src" . "λ")
+                                         (">=" . "≥")
+                                         ("=>" . "⇨")))
+  (setq prettify-symbols-unprettify-at-point 'right-edge)
+  (add-hook 'org-mode-hook 'prettify-symbols-mode)
+#+end_src
+
+Set variable-pitch font. Also, set fixed-pitch font.
+Variable pitch: ETBembo. Linux height: 180. Mac: 220
+Fixed pitch: Menlo
+#+begin_src emacs-lisp
+  (custom-theme-set-faces
+   'user
+   (if (is-mac-p)
+       '(variable-pitch ((t (:family "ETBembo" :height 220 :weight normal))))
+     '(variable-pitch ((t (:family "ETBembo" :height 180 :weight normal)))))
+   ;;'(fixed-pitch ((t ( :family "Consolas" :slant normal :weight normal :height 0.9 :width normal))))
+   '(fixed-pitch ((t ( :family "Menlo" :slant normal :weight thin :height 160 :width normal)))))
+
+  (custom-theme-set-faces
+   'user
+   '(org-block                 ((t (:inherit fixed-pitch))))
+   '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
+   '(org-property-value        ((t (:inherit fixed-pitch))) t)
+   '(org-special-keyword       ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+   '(org-tag                   ((t (:inherit (shadow fixed-pitch) :weight bold))))
+   '(org-verbatim              ((t (:inherit (shadow fixed-pitch))))))
+#+end_src
+
+Set org-pretty-tags
+#+begin_src emacs-lisp
+  (use-package org-pretty-tags
+    :ensure t
+    :config
+    (setq org-pretty-tags-surrogate-strings
+          (quote
+           (("Work" . "")
+            ("Home" . "")))))
+  (org-pretty-tags-global-mode)
+#+end_src
+
+Enable "fancy priorities"
+#+begin_src emacs-lisp
+  (use-package org-fancy-priorities
+    :ensure t
+    :hook (org-mode . org-fancy-priorities-mode)
+    :config
+    (setq org-fancy-priorities-list '("⚡" "⬆" "⬇" "☕")))
+#+end_src
+
+Set up org-mode
+#+begin_src emacs-lisp
+  (use-package org
+    :init
+    ;; Set org-agenda file(s)
+    (setq org-agenda-files (list "~/ORG/master-TODO.org"))
+
+    ;; turn on visual line mode for org buffers
+    (add-hook 'org-mode-hook #'visual-line-mode)
+
+    ;; turn on variable-pitch-mode in org buffers
+    (add-hook 'org-mode-hook #'variable-pitch-mode)
+
+    ;; tangle blocks on save
+    ;; TODO: only enable this functionality in Emacs.org
+    (add-hook 'org-mode-hook
+              (lambda () (add-hook 'after-save-hook #'org-babel-tangle
+                                   :append :local)))
+    :custom
+    (org-support-shift-select 'always)
+
+    :config
+    ;; https://stackoverflow.com/questions/11272236/how-to-make-formule-bigger-in-org-mode-of-emacs
+    ;; Adjusts the scale of latex in .org files. C-h v org-format-latex-options for more info, or above link
+    (setq org-format-latex-options (plist-put org-format-latex-options :scale 2.0))
+
+    ;; Set org-agenda "Weekly" view to display 14 days
+    ;; Can be day, week, month, year, or any number of days.
+    ;; TODO: What is the difference in just setting the variable (like above)
+    ;; as opposed to using "setq" like below?
+    (setq org-agenda-span '14) )
+#+end_src
+* Ledger Mode
+#+BEGIN_SRC emacs-lisp
+  (use-package ledger-mode
+    :ensure t)
+#+END_SRC
+* Elpy - python extension for Emacs
+
+Elpy is basically an IDE-style solution for python programming in Emacs. An alternative to, say, hacking everything out on your own. This is what I'm going to use for the time-being.
+
+Useful tip: run `M-x elpy-config` to get useful info about elpy
+
+Note from 1/29/22: Installed flake8 via pip 
+#+BEGIN_SRC bash
+  python3 -m pip install flake8
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+  (use-package elpy
+    :ensure t
+    :init
+    (elpy-enable))
+#+END_SRC
+
+* Company Mode
+
+I'm not sure if this is necessary in conjunction with Elpy or not. 
+
+#+BEGIN_SRC emacs-lisp
+  ;; (use-package company
+  ;;   :bind (:map company-active-map
+  ;; 	 ("C-n" . company-select-next)
+  ;; 	 ("C-p" . company-select-previous))
+  ;;   :config
+  ;;   (setq company-idle-delay 0.3)
+  ;;   (global-company-mode t))
+
+  (use-package company
+    :after lsp-mode
+    :hook (lsp-mode . company-mode)
+    :custom
+    (company-begin-commands '(self-insert-command))
+    (company-idle-delay 0.5)
+    (company-minimum-prefix-length 1)
+    (company-show-quick-access t)
+    (company-tooltip-align-annotations 't))
+
+  (use-package company-box
+    :if (display-graphic-p)
+    :after company
+    :hook (company-mode . company-box-mode))
+#+END_SRC
+
+* Diminish
+
+Diminish prevents the minor mode from appearing in the mode line.  We don't need
+this code because we can just add =:diminish < mode >= to the use-package
+directive
+
+Turning off tangling for this because =use-package= supports diminish by default.
+
+#+begin_src emacs-lisp :tangle no
+  (use-package diminish
+    :defer 5
+    :config
+    (diminish org-indent-mode))
+#+end_src
+
+* Undoing Stuff with undo-tree
+
+#+begin_src emacs-lisp
+  (use-package undo-tree
+    :diminish
+    :bind ("C-x u" . undo-tree-visualize)
+    :config
+
+    ;; Always on
+    (global-undo-tree-mode)
+
+    ;; Each node in tree gets timestamps
+    (setq undo-tree-visualizer-timestamps t)
+
+    ;; Show a diff window displaying changes between undo nodes
+    (setq undo-tree-visualizer-diff t))
+#+end_src
+
+* Which key?
+
+#+begin_src emacs-lisp
+  (use-package which-key
+    :diminish
+    :config (which-key-mode)
+    (which-key-setup-side-window-bottom)
+    (setq which-key-idle-delay 0.2))
+#+end_src
+
+* Theme
+
+doom-themes and doom-modeline
+
+#+begin_src emacs-lisp
+  (use-package doom-themes
+    :config
+    ;; (load-theme 'doom-gruvbox t)
+    ;;(load-theme 'doom-gruvbox-light t)
+    (load-theme 'doom-zenburn t)
+    (doom-themes-org-config)
+    (setq zenburn-use-variable-pitch t)
+    (setq zenburn-scale-org-headlines t)
+    (setq zenburn-scale-outline-headlines t))
+
+  (use-package zenburn-theme
+    :disabled
+    :config
+    (load-theme 'zenburn t)
+    :init
+    ;; use variable-pitch fonts for some headings and titles
+    (setq zenburn-use-variable-pitch t)
+
+    ;; scale headings in org-mode
+    (setq zenburn-scale-org-headlines t)
+
+    ;; scale headings in outline-mode
+    (setq zenburn-scale-outline-headlines t))
+
+  (use-package doom-modeline
+    :init (doom-modeline-mode)
+    :custom
+    (doom-modeline-icon (display-graphic-p)))
+#+end_src
+
+solaire-mode (to differentiate "main" buffer from others)
+
+#+begin_src emacs-lisp
+  (use-package solaire-mode
+    :defer 0.1
+    :custom (solaire-mode-remap-fringe t)
+    :config (solaire-global-mode))
+#+end_src
+
+* Parenthesis
+
+| =rainbow-delimiters= | https://github.com/Fanael/rainbow-delimiters |
+| =smartparens=        | https://github.com/Fuco1/smartparens         |
+
+Highlight parenthese-like delimiters in a rainbow fashion. It eases the reading when dealing with mismatched parentheses.
+
+#+begin_src emacs-lisp
+  (use-package rainbow-delimiters
+    :hook
+    (prog-mode . rainbow-delimiters-mode))
+#+end_src
+
+* User Interface
+
+  Interface cleanup
+
+   #+begin_src emacs-lisp
+     (setq inhibit-startup-message t)                ; Not sure if I need this given setting in Better Defaults
+     (tool-bar-mode -1)                              ; Disable the toolbar
+     (tooltip-mode -1)                               ; Disable tooltips
+     (set-fringe-mode 10)                            ; Add fringe
+     (menu-bar-mode -1)                              ; Disable the menu bar
+     (setq visible-bell t)                           ; Activate visible bell
+     (scroll-bar-mode 1)
+   #+end_src
+
+   Scrolling
+
+   #+begin_src emacs-lisp
+     (setq mouse-wheel-scroll-amount '(1 ((shift) . 1))) ;; one line at a time
+     (setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
+     (setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
+     (setq scroll-step 1) ;; keyboard scroll one line at a time
+     (setq use-dialog-box nil) ;; Disable dialog boxes since they weren't working in Mac OSX
+   #+end_src
+
+   Maximize screen by default
+
+   Disable on MacOSX because it's forcing my screen to stay fullscreen??
+
+   #+begin_src emacs-lisp :tangle no
+     (set-frame-parameter (selected-frame) 'fullscreen 'maximized)
+     (add-to-list 'default-frame-alist '(fullscreen . maximized))
+   #+end_src
+
+   Line/column numbers customization
+
+   #+begin_src emacs-lisp
+     (column-number-mode)
+
+     ;; Enable line numbers for some modes
+     (dolist (mode '(text-mode-hook
+		     prog-mode-hook
+		     conf-mode-hook))
+       (add-hook mode (lambda () (display-line-numbers-mode 1))))
+
+     ;; Override some modes which derive from the above
+     (dolist (mode '(org-mode-hook))
+       (add-hook mode (lambda () (display-line-numbers-mode 0))))
+   #+end_src
+
+   Centered windows from rememberYou's config
+
+   #+begin_src emacs-lisp
+     (use-package centered-window
+       :custom
+       (cwm-centered-window-width 130)
+       (cwm-frame-internal-border 0)
+       (cwm-incremental-padding t)
+       (cwm-incremental-padding-% 2)
+       (cwm-left-fringe-ratio 0)
+       (cwm-use-vertical-padding t)
+       :config (centered-window-mode))
+   #+end_src
+
+   Switch window shows us numbers to hit when we want to switch to a different window
+
+   #+begin_src emacs-lisp
+     (use-package switch-window
+       :bind (("C-x o" . switch-window)
+	      ("C-x w" . switch-window-then-swap-buffer)))
+   #+end_src
+
+* Dired
+
+   #+begin_src emacs-lisp
+     (use-package dired
+       :ensure nil
+       :commands (dired dired-jump)
+       :bind (:map dired-mode-map
+		   ("h" . dired-up-directory)
+		   ("j" . dired-next-line)
+		   ("k" . dired-previous-line)
+		   ("l" . dired-single-buffer))
+       :delight "Dired"
+       :custom
+       ;; (when (eq system-type 'darwin)
+       ;;   (insert-directory-program "gls" dired-use-ls-dired t))
+       (dired-auto-revert-buffer t)
+       (dired-dwim-target t)
+       (dired-hide-details-hide-symlink-targets nil)
+       (dired-listing-switches "-alh --group-directories-first")
+       (dired-ls-F-marks-symlinks nil)
+       (dired-recursive-copies 'always))
+   #+end_src
+
+   To avoid =dired= to keep buffers, I use [[https://github.com/crocket/dired-single][dired-single]].
+
+   #+begin_src emacs-lisp
+     (use-package dired-single
+       :after dired
+       :bind (:map dired-mode-map
+		   ([remap dired-find-file] . dired-single-buffer)
+		   ([remap dired-up-directory] . dired-single-up-directory)
+		   ("M-DEL" . dired-prev-subdir)))
+   #+end_src
+
+   By default, =dired= opens files in plain text. This behavior is sometimes undesirable. Hopefully, [[https://github.com/Fuco1/dired-hacks/blob/master/dired-open.el][dired-open]] can be used to informs =dired= that certain desired file extensions must be opened with external packages to GNU Emacs.
+
+   #+begin_src emacs-lisp
+     (use-package dired-open
+       :after (dired dired-jump)
+       :custom (dired-open-extensions '(("mp4" . "mpv"))))
+   #+end_src
+
+   To know the type of file at a glance, [[https://github.com/jtbm37/all-the-icons-dired][all-the-icons-dired]] integrates icons directly into =dired=.
+
+   #+begin_src emacs-lisp
+     (use-package all-the-icons-dired
+       :if (display-graphic-p)
+       :hook (dired-mode . all-the-icons-dired-mode))
+   #+end_src
+
+   It is sometimes convenient to hide dotfiles. With [[https://github.com/mattiasb/dired-hide-dotfiles][dired-hide-dotfiles]] this becomes possible.
+
+   #+begin_src emacs-lisp
+     (use-package dired-hide-dotfiles
+       :hook (dired-mode . dired-hide-dotfiles-mode)
+       :bind (:map dired-mode-map
+		   ("H" . dired-hide-dotfiles-mode)))
+   #+end_src
+
+   I like being able to =<TAB>= on a folder and see its contents, without me getting into it. [[https://github.com/Fuco1/dired-hacks/blob/master/dired-subtree.el][dired-subtree]] allows this behavior.
+
+   #+begin_src emacs-lisp
+     (use-package dired-subtree
+       :after dired
+       :bind (:map dired-mode-map
+		   ("<tab>" . dired-subtree-toggle)))
+   #+end_src
+
+   Finally, to manage folders with a large number of files, it may be useful to filter with [[https://github.com/Fuco1/dired-hacks/blob/master/dired-narrow.el][dired-narrow]]
+
+   #+begin_src emacs-lisp
+     (use-package dired-narrow
+       :ensure nil
+       :bind (("C-c C-n" . dired-narrow)
+	      ("C-c C-f" . dired-narrow-fuzzy)))
+   #+end_src
+
+* PDF Tools
+
+  #+BEGIN_SRC emacs-lisp
+    (use-package pdf-tools
+      :disabled
+      :config
+      (pdf-tools-install)
+      )
+  #+END_SRC
+
+  Should I also install org-pdfview?
+
+  #+BEGIN_SRC emacs-lisp
+    (use-package org-pdfview
+      :disabled
+      )
+  #+END_SRC
+
+* Fonts and Bullets
+
+  Set default font size
+  
+  When you have time, look here for reference: https://github.com/daviwil/dotfiles/blob/master/Emacs.org#fonts-and-bullets
+  And also here if need be: https://zzamboni.org/post/beautifying-org-mode-in-emacs/
+
+** Font settings
+
+   #+BEGIN_SRC emacs-lisp
+     ;; (set-face-attribute 'default nil :family "Source Code Pro")
+     ;; (set-face-attribute 'default nil :height 165)
+     ;; (set-fontset-font t 'latin "Noto Sans")
+     ;; (set-face-attribute 'default nil :family "Menlo")
+     ;; (set-face-attribute 'default nil :height 165)
+     ;; (set-fontset-font t 'latin "Noto Sans")
+   #+END_SRC
+
+** Trying out unicode-fonts
+
+   Does this even do anything?
+   
+   #+BEGIN_SRC emacs-lisp
+     (use-package unicode-fonts
+	:ensure t
+	:config
+	(unicode-fonts-setup))
+   #+END_SRC
+
+# https://github.com/dunn/company-emoji#emoji-font-support
+
+   #+BEGIN_SRC emacs-lisp
+     (if (version< "27.0" emacs-version)
+         (set-fontset-font
+          "fontset-default" 'unicode "Apple Color Emoji" nil 'prepend)
+       (set-fontset-font
+        t 'symbol (font-spec :family "Apple Color Emoji") nil 'prepend))
+
+     (use-package company-emoji
+       :ensure t)
+     (use-package company
+       :config
+       ;; ...
+       (add-to-list 'company-backends 'company-emoji))
+   #+END_SRC
+
+* Icons
+
+To integrate icons with =doom-modeline= and other packages, [[https://github.com/domtronn/all-the-icons.el/][all-the-icons]] is the
+best package that you can have with GNU Emacs. To download the icons on your
+machine, you must run the =all-the-icons-install-fonts= command when you install
+this package.
+
+#+begin_src emacs-lisp
+  (use-package all-the-icons
+    :if (display-graphic-p)
+    :commands all-the-icons-install-fonts
+    :config (unless (find-font (font-spec :name "all-the-icons"))
+              (all-the-icons-install-fonts t)))
+#+end_src
+
+* Indentation Guides
+  The package below lets us heavily customize the indentation guide (i.e. shadows, characters, etc. to help us see the indentation easier). It is called =highlight-indent-guides= and can be found [[https://github.com/DarthFennec/highlight-indent-guides][here]].
+
+  #+begin_src emacs-lisp :tangle no
+    (use-package highlight-indent-guides
+      :config
+      (setq highlight-indent-guides-method 'bitmap)
+      )
+
+    (add-hook 'prog-mode-hook 'highlight-indent-guides-mode)
+  #+end_src
+  
+* Spelling Correction
+  I'm using flyspell, with ispell as the backend.
+  On Linux, install with something like
+  #+BEGIN_SRC bash :tangle no
+    sudo apt install ispell
+  #+END_SRC
+  And on Mac...
+  #+BEGIN_SRC bash :tangle no
+    brew install ispell
+  #+END_SRC
+
+  Activate flyspell in text-mode buffers
+  #+BEGIN_SRC emacs-lisp
+    (dolist (hook '(text-mode-hook))
+      (add-hook hook (lambda () (flyspell-mode 1))))
+  #+END_SRC
+
+* Markdown Mode (from [[https://jblevins.org/projects/markdown-mode/][here]])
+
+  Enable markdown-mode
+
+  #+BEGIN_SRC emacs-lisp
+    (use-package markdown-mode
+      :ensure t
+      :commands (markdown-mode gfm-mode)
+      :mode (("README\\.md\\'" . gfm-mode)
+	     ("\\.md\\'" . markdown-mode)
+	     ("\\.markdown\\'" . markdown-mode))
+      :init (setq markdown-command "pandoc"))
+  #+END_SRC
+
+

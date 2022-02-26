@@ -1,0 +1,18 @@
+#+AUTHOR: Christian Elliott
+#+TITLE: About ORG/scripts/
+#+DATE: 27 November 2021
+* About =emacs.sh=
+
+  This file was put here to serve as a initializer for GUI emacs from the terminal. I have only experienced this issue on MacOS.
+
+* Setup for =emacs.sh=
+
+  On a new box, copy =emacs.sh= to the desired user binaries directory. On Mac, at the time of writing, this should be =/usr/local/bin=
+
+  After confirming the script is at the appropriate location, make sure you alias to the right script in your .bashrc or what have you.
+
+* About c-*
+
+Bash script to serve as custom utilities for myself to reduce redundant actions.
+
+First task, encrypt/decrypt files using the appropriate keys.

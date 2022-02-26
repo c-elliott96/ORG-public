@@ -1,0 +1,25 @@
+#+TITLE: encryption-help.org
+#+AUTHOR: Christian Elliott
+* About
+  The files =Journal.org= and =Letters.org= are now encrypted via my public key.
+  My public key is available in =main-pub.key=. 
+* Encrypting
+  Run
+  #+BEGIN_SRC bash
+    gpg --recipient <recipients-email> --encrypt <file-to-encrypt>
+  #+END_SRC
+* Unencrypting
+  Run
+  #+BEGIN_SRC bash
+    gpg --output <output-filename> --decrypt <file-to-unencrypt>
+  #+END_SRC
+* Tar
+  To compress
+  #+BEGIN_SRC bash
+    tar czf output-file.tar.gz input-folder
+  #+END_SRC
+  To decompress
+  #+BEGIN_SRC bash
+    tar xzf output-file.tar.gz
+  #+END_SRC
+
